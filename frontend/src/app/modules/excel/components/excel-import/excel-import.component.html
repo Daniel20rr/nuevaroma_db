@@ -1,0 +1,233 @@
+<div class="card mt-3 shadow-sm">
+  <div class="card-body">
+
+    <h3 class="text-center mb-4 fw-bold">📊 Importar Excel</h3>
+
+    <!-- ==================== SUBIR ARCHIVO ==================== -->
+    <div class="mb-4">
+      <label class="form-label fw-semibold">Seleccionar archivo Excel (.xlsx)</label>
+      <input type="file" class="form-control" accept=".xlsx" (change)="onFileSelected($event)">
+    </div>
+
+    <!-- ==================== ESTADO ==================== -->
+    <div *ngIf="status" class="alert alert-info py-2 d-flex align-items-center">
+      <i class="bi bi-info-circle me-2"></i>
+      <span>{{ status }}</span>
+    </div>
+
+    <!-- ==================== PROGRESO ==================== -->
+    <div *ngIf="progress > 0" class="progress mb-4" style="height: 25px;">
+      <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
+           [style.width.%]="progress"
+           role="progressbar">
+        <strong>{{ progress }}%</strong>
+      </div>
+    </div>
+
+    <!-- ==================== HOJAS ==================== -->
+    <div *ngIf="sheets.length > 0" class="mb-4">
+      <label class="fw-semibold mb-2">📑 Hojas encontradas:</label>
+      <div class="btn-group d-flex flex-wrap gap-2" role="group">
+        <button *ngFor="let sheet of sheets"
+                type="button"
+                class="btn"
+                [class.btn-primary]="sheet.name === selectedSheet"
+                [class.btn-outline-primary]="sheet.name !== selectedSheet"
+                (click)="selectSheet(sheet.name)">
+          {{ sheet.name }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== VISTA PREVIA ==================== -->
+    <div *ngIf="previewData.length > 0">
+      <h5 class="fw-semibold mb-3">
+        👁️ Vista previa: <span class="text-primary">{{ selectedSheet }}</span>
+      </h5>
+
+      <!-- ==================== FILTRO Y PAGINACIÓN ==================== -->
+      <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <input type="text" 
+               class="form-control" 
+               style="max-width: 300px;" 
+               placeholder="🔍 Buscar..." 
+               [formControl]="searchControl">
+
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted">Página {{ page }} de {{ totalPages }}</span>
+          <button class="btn btn-sm btn-outline-secondary" 
+                  (click)="previousPage()" 
+                  [disabled]="page === 1">
+            <i class="bi bi-chevron-left"></i> Anterior
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" 
+                  (click)="nextPage()" 
+                  [disabled]="page === totalPages">
+            Siguiente <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== TABLA ==================== -->
+      <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+        <table class="table table-striped table-bordered table-hover">
+          <thead class="table-dark sticky-top">
+            <tr>
+              <th style="width: 50px;">
+                <input type="checkbox"
+                       class="form-check-input"
+                       [checked]="isAllChecked()"
+                       (change)="toggleAll($any($event.target).checked)">
+              </th>
+              <th *ngFor="let col of columns" 
+                  (click)="changeSort(col.name)" 
+                  style="cursor: pointer;"
+                  class="user-select-none">
+                {{ col.name }}
+                <span *ngIf="sortCol === col.name">
+                  <i *ngIf="sortDir === 'asc'" class="bi bi-arrow-up"></i>
+                  <i *ngIf="sortDir === 'desc'" class="bi bi-arrow-down"></i>
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of pagedRows; let i = index" 
+                [class.table-danger]="validationErrors[(page - 1) * pageSize + i]?.length > 0">
+              <td>
+                <input type="checkbox"
+                       class="form-check-input"
+                       [(ngModel)]="selectedRows[(page - 1) * pageSize + i]">
+              </td>
+              <td *ngFor="let cell of row; let colIdx = index" 
+                  (dblclick)="startEdit(i, colIdx)"
+                  style="cursor: pointer;">
+                
+                <!-- Modo edición -->
+                <div *ngIf="isEditing(i, colIdx)" class="d-flex gap-1">
+                  <input type="text" 
+                         class="form-control form-control-sm" 
+                         [(ngModel)]="editValue"
+                         (keyup.enter)="saveEdit()"
+                         (keyup.escape)="cancelEdit()">
+                  <button class="btn btn-sm btn-success" (click)="saveEdit()">
+                    <i class="bi bi-check"></i>
+                  </button>
+                  <button class="btn btn-sm btn-secondary" (click)="cancelEdit()">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+                
+                <!-- Modo vista -->
+                <span *ngIf="!isEditing(i, colIdx)">{{ cell }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ==================== ERRORES DE VALIDACIÓN ==================== -->
+      <div *ngIf="getErrorRows().length > 0" class="alert alert-warning mt-3">
+        <h6 class="fw-bold">⚠️ Errores de validación:</h6>
+        <ul class="mb-0">
+          <li *ngFor="let rowIdx of getErrorRows()">
+            <strong>Fila {{ rowIdx + 1 }}:</strong> {{ validationErrors[rowIdx].join(', ') }}
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ==================== GRÁFICO DE BARRAS (Fila seleccionada) ==================== -->
+    <div *ngIf="chartData.length > 0" class="mt-5">
+      <h4 class="fw-bold text-center mb-3">📊 Gráfico de Barras - Fila {{ chartRowIndex + 1 }}</h4>
+      <div style="max-width: 800px; margin: 0 auto;">
+        <div style="position: relative; height: 400px;">
+          <canvas baseChart 
+                  [datasets]="barChartData.datasets"
+                  [labels]="barChartData.labels"
+                  [chartType]="barChartType"
+                  [options]="barChartOptions"
+                  [legend]="barChartLegend">
+          </canvas>
+        </div>
+      </div>
+      
+      <div class="d-flex justify-content-center mt-3 gap-2">
+        <button class="btn btn-outline-primary btn-sm"
+                (click)="setChartRow(chartRowIndex - 1)"
+                [disabled]="chartRowIndex === 0">
+          <i class="bi bi-chevron-left"></i> Fila anterior
+        </button>
+        <button class="btn btn-outline-primary btn-sm"
+                (click)="setChartRow(chartRowIndex + 1)"
+                [disabled]="chartRowIndex >= previewData.length - 1">
+          Fila siguiente <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== GRÁFICOS DE ESTADÍSTICAS (PIE CHARTS) ==================== -->
+    <div class="mt-5">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold">📈 Gráficos de Estadísticas</h4>
+        <button class="btn btn-primary btn-sm" (click)="loadStats()">
+          <i class="bi bi-graph-up"></i> Cargar estadísticas desde FastAPI
+        </button>
+      </div>
+
+      <div *ngIf="loadingStats" class="alert alert-info py-2 d-flex align-items-center">
+        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+        <span>Cargando estadísticas desde FastAPI...</span>
+      </div>
+
+      <!-- Mostrar gráficos solo si hay datos -->
+      <div class="row" *ngIf="!loadingStats && pieStudentsData.length > 0">
+        <!-- Gráfico Estudiantes -->
+        <div class="col-md-6 mb-4">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5 class="text-center fw-semibold mb-3">👨‍🎓 Promedios por Estudiante</h5>
+              <div style="position: relative; height: 400px;">
+                <canvas baseChart 
+                        [datasets]="pieStudentsChartData.datasets"
+                        [labels]="pieStudentsChartData.labels"
+                        [chartType]="pieChartType"
+                        [options]="pieStudentsChartOptions"
+                        [legend]="pieChartLegend">
+                </canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfico Materias -->
+        <div class="col-md-6 mb-4">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5 class="text-center fw-semibold mb-3">📚 Promedios por Materia</h5>
+              <div style="position: relative; height: 400px;">
+                <canvas baseChart 
+                        [datasets]="pieGradesChartData.datasets"
+                        [labels]="pieGradesChartData.labels"
+                        [chartType]="pieChartType"
+                        [options]="pieGradesChartOptions"
+                        [legend]="pieChartLegend">
+                </canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mensaje si no hay datos -->
+      <div *ngIf="!loadingStats && pieStudentsData.length === 0">
+        <div class="alert alert-warning text-center py-3">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>No hay datos de estadísticas disponibles.</strong><br>
+          <small>Haz clic en "Cargar estadísticas desde FastAPI" para obtener los datos de estudiantes y materias.</small>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

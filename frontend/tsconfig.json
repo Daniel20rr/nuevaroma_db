@@ -7,6 +7,6 @@
     "emitDecoratorMetadata": true,
     "strict": false,
     "skipLibCheck": true,
-    "types": []
+    "types": ["jasmine"]
   }
 }
