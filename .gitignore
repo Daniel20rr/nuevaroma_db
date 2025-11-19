@@ -1,13 +1,43 @@
 # Node.js
 node_modules/
 package-lock.json
+npm-debug.log
+
+# Angular build output
+frontend/dist/
+frontend/out-tsc/
+frontend/.angular/cache/
+frontend/.vscode/
 
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.env
+*.venv
+env/
+venv/
 
-# Angular / dist
-frontend/dist/
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
 
-# Angular
-/frontend/.angular/cache
+# Logs
+logs/
+*.log
+*.log.*
+
+# IDEs
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Misc
+*.tmp
+*.bak
+*.old
+*.orig
