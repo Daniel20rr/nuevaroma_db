@@ -8,3 +8,6 @@ __pycache__/
 
 # Angular / dist
 frontend/dist/
+
+# Angular
+/frontend/.angular/cache
