@@ -1,55 +1,87 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, List, Any
 
-class StudentBase(BaseModel):
+# =====================================================
+# ================ ESTUDIANTES ========================
+# =====================================================
+class EstudianteBase(BaseModel):
+    nombre: str
+    email: str
+
+class EstudianteCreate(EstudianteBase):
+    pass
+
+class EstudianteUpdate(BaseModel):
+    nombre: Optional[str] = None
+    email: Optional[str] = None
+
+class EstudianteOut(EstudianteBase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+# =====================================================
+# ===================== MATERIAS ======================
+# =====================================================
+class MateriaBase(BaseModel):
+    nombre: str
+
+class MateriaCreate(MateriaBase):
+    pass
+
+class MateriaOut(MateriaBase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+# =====================================================
+# ======================= NOTAS ========================
+# =====================================================
+class NotaBase(BaseModel):
+    estudiante_id: int = Field(..., alias="estudianteId")
+    materia_id: int = Field(..., alias="materiaId")
+    nota: float
+
+    model_config = ConfigDict(populate_by_name=True)
+
+class NotaCreate(NotaBase):
+    pass
+
+class NotaUpdate(BaseModel):
+    estudiante_id: Optional[int] = Field(None, alias="estudianteId")
+    materia_id: Optional[int] = Field(None, alias="materiaId")
+    nota: Optional[float] = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+class NotaOut(NotaBase):
+    id: int
+    estudiante: Optional[EstudianteOut] = None
+    materia: Optional[MateriaOut] = None
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+# =====================================================
+# ================ MÓDULO EXCEL =======================
+# =====================================================
+class ExcelRow(BaseModel):
+    values: List[Any]
+
+class ExcelSheetPreview(BaseModel):
     name: str
-    email: str | None = None
+    headers: List[str]
+    data: List[List[Any]]
 
+class ExcelDuplicates(BaseModel):
+    sheet: str
+    rows: List[int]
 
-class StudentCreate(StudentBase):
-    pass
+class ExcelUploadResponse(BaseModel):
+    message: str
+    sheets: List[ExcelSheetPreview]
+    duplicates: List[ExcelDuplicates]
 
-
-class StudentUpdate(BaseModel):
-    name: str | None = None
-    email: str | None = None
-
-
-class StudentOut(StudentBase):
-    id: int
-
-    class Config:
-        from_attributes = True  # ✅ Pydantic v2
-
-
-class SubjectBase(BaseModel):
-    name: str
-
-
-class SubjectCreate(SubjectBase):
-    pass
-
-
-class SubjectOut(SubjectBase):
-    id: int
-
-    class Config:
-        from_attributes = True  # ✅ Pydantic v2
-
-
-class GradeBase(BaseModel):
-    student_id: int
-    subject_id: int
-    grade: float
-
-
-class GradeCreate(GradeBase):
-    pass
-
-
-class GradeOut(GradeBase):
-    id: int
-    student: StudentOut
-    subject: SubjectOut
-
-    class Config:
-        from_attributes = True  # ✅ Pydantic v2
+class ExcelInsertResponse(BaseModel):
+    insertados: int
+    existentes: int
+    message: str

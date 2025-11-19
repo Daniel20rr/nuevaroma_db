@@ -6,3 +6,6 @@ python-dotenv
 pydantic
 alembic
 cryptography
+pandas
+python-multipart
+openpyxl

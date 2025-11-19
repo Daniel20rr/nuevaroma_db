@@ -4,31 +4,34 @@ import { Component } from '@angular/core';
   selector: 'app-root',
   template: `
   <div class="container mt-4">
-    <h1>CRUD Nuevaroma</h1>
+
+    <h1>Colegio Nuevaroma</h1>
+
+    <!-- NAVBAR -->
     <ul class="nav nav-tabs mt-3">
-      <li class="nav-item"><a class="nav-link" [class.active]="tab==='students'" (click)="tab='students'">Alumnos</a></li>
-      <li class="nav-item"><a class="nav-link" [class.active]="tab==='subjects'" (click)="tab='subjects'">Materias</a></li>
-      <li class="nav-item"><a class="nav-link" [class.active]="tab==='grades'" (click)="tab='grades'">Notas</a></li>
+      <li class="nav-item">
+        <a routerLink="/students" routerLinkActive="active" class="nav-link">Alumnos</a>
+      </li>
+
+      <li class="nav-item">
+        <a routerLink="/subjects" routerLinkActive="active" class="nav-link">Materias</a>
+      </li>
+
+      <li class="nav-item">
+        <a routerLink="/grades" routerLinkActive="active" class="nav-link">Notas</a>
+      </li>
+
+      <!-- 👉 BOTÓN NUEVO CORRECTAMENTE DENTRO DEL <ul> -->
+      <li class="nav-item">
+        <a routerLink="/excel" routerLinkActive="active" class="nav-link">Importar Excel</a>
+      </li>
     </ul>
 
-    <div class="mt-3" *ngIf="tab==='students'">
-      <app-student-form (refresh)="onRefresh()"></app-student-form>
-      <app-student-list></app-student-list>
+    <div class="mt-4">
+      <router-outlet></router-outlet>
     </div>
 
-    <div *ngIf="tab==='subjects'">
-      <app-subject-form></app-subject-form>
-      <app-subject-list></app-subject-list>
-    </div>
-
-    <div *ngIf="tab==='grades'">
-      <app-grade-form></app-grade-form>
-      <app-grade-list></app-grade-list>
-    </div>
   </div>
-  `
+  `,
 })
-export class AppComponent {
-  tab = 'students';
-  onRefresh(){ window.location.reload(); }
-}
+export class AppComponent {}

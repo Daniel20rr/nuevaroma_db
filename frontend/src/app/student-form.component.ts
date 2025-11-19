@@ -4,13 +4,13 @@ import { StudentService } from './student.service';
 @Component({
   selector: 'app-student-form',
   template: `
-  <div class="card p-3">
-    <div class="row">
+  <div class="card p-3 mt-3">
+    <div class="row g-2 align-items-center">
       <div class="col">
-        <input class="form-control" placeholder="Nombre" [(ngModel)]="name" />
+        <input class="form-control" placeholder="Nombre del alumno" [(ngModel)]="nombre" />
       </div>
       <div class="col">
-        <input class="form-control" placeholder="Email" [(ngModel)]="email" />
+        <input class="form-control" placeholder="Correo" [(ngModel)]="email" type="email" />
       </div>
       <div class="col-auto">
         <button class="btn btn-success" (click)="create()">Agregar</button>
@@ -20,17 +20,33 @@ import { StudentService } from './student.service';
   `
 })
 export class StudentFormComponent {
-  name = '';
-  email = '';
-  @Output() refresh = new EventEmitter<void>();
-  constructor(private svc: StudentService){}
 
-  create(){
-    if (!this.name) { alert('Nombre requerido'); return; }
-    this.svc.create({name:this.name, email:this.email}).subscribe(()=>{
-      this.name=''; this.email='';
-      this.refresh.emit();
-      window.location.reload();
-    }, err=> alert('Error'));
+  nombre = '';
+  email = '';
+
+  @Output() refresh = new EventEmitter<void>();
+
+  constructor(private svc: StudentService) {}
+
+  create() {
+    if (!this.nombre.trim()) {
+      alert('⚠️ El nombre es obligatorio');
+      return;
+    }
+
+    const data = { nombre: this.nombre.trim(), email: this.email.trim() };
+
+    this.svc.create(data).subscribe({
+      next: () => {
+        alert('✅ Estudiante agregado correctamente');
+        this.nombre = '';
+        this.email = '';
+        this.refresh.emit();
+      },
+      error: (err) => {
+        console.error('Error creando estudiante:', err);
+        alert('❌ Error al agregar estudiante');
+      }
+    });
   }
 }
