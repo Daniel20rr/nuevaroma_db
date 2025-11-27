@@ -1,37 +1,39 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'app-root',
-  template: `
-  <div class="container mt-4">
+  selector: 'app-root',
+  template: `
+  <div class="container mt-4">
 
-    <h1>Colegio Nuevaroma</h1>
+    <h1>Colegio Nuevaroma</h1>
 
-    <!-- NAVBAR -->
-    <ul class="nav nav-tabs mt-3">
-      <li class="nav-item">
-        <a routerLink="/students" routerLinkActive="active" class="nav-link">Alumnos</a>
-      </li>
+        <ul class="nav nav-tabs mt-3">
+      <li class="nav-item">
+        <a routerLink="/students" routerLinkActive="active" class="nav-link">Alumnos</a>
+      </li>
 
-      <li class="nav-item">
-        <a routerLink="/subjects" routerLinkActive="active" class="nav-link">Materias</a>
-      </li>
+            <li class="nav-item">
+        <a routerLink="/profesores" routerLinkActive="active" class="nav-link">Profesores</a>
+      </li>
 
-      <li class="nav-item">
-        <a routerLink="/grades" routerLinkActive="active" class="nav-link">Notas</a>
-      </li>
+      <li class="nav-item">
+        <a routerLink="/subjects" routerLinkActive="active" class="nav-link">Materias</a>
+      </li>
 
-      <!-- 👉 BOTÓN NUEVO CORRECTAMENTE DENTRO DEL <ul> -->
-      <li class="nav-item">
-        <a routerLink="/excel" routerLinkActive="active" class="nav-link">Importar Excel</a>
-      </li>
-    </ul>
+      <li class="nav-item">
+        <a routerLink="/grades" routerLinkActive="active" class="nav-link">Notas</a>
+      </li>
 
-    <div class="mt-4">
-      <router-outlet></router-outlet>
-    </div>
+      <li class="nav-item">
+        <a routerLink="/excel" routerLinkActive="active" class="nav-link">Importar Excel</a>
+      </li>
+    </ul>
 
-  </div>
-  `,
+    <div class="mt-4">
+      <router-outlet></router-outlet>
+    </div>
+
+  </div>
+  `,
 })
 export class AppComponent {}

@@ -9,3 +9,5 @@ cryptography
 pandas
 python-multipart
 openpyxl
+email-validator
+pydantic[email]

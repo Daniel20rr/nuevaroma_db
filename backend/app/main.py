@@ -20,10 +20,12 @@ app.add_middleware(
         "http://localhost:80",
         "http://localhost:4200",
         "http://localhost:8080",
+        "http://localhost:8001",
         "http://127.0.0.1",
         "http://127.0.0.1:80",
         "http://127.0.0.1:4200",
         "http://127.0.0.1:8080",
+        "http://127.0.0.1:8001",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -81,6 +83,107 @@ def crear_materia(materia: schemas.MateriaCreate, session=Depends(get_session)):
 @app.get("/materias/", response_model=list[schemas.MateriaOut])
 def listar_materias(session=Depends(get_session)):
     return crud.listar_materias(session)
+
+# =====================================================
+# ================= CRUD PROFESORES ==================
+# =====================================================
+
+@app.post("/profesores/", response_model=schemas.ProfesorOut)
+def crear_profesor(profesor: schemas.ProfesorCreate, session=Depends(get_session)):
+    """Crear un nuevo profesor"""
+    return crud.crear_profesor(session, profesor)
+
+@app.get("/profesores/", response_model=list[schemas.ProfesorOut])
+def listar_profesores(
+    q: str = None, 
+    activos_solo: bool = True, 
+    session=Depends(get_session)
+):
+    """
+    Listar profesores con búsqueda opcional
+    - q: Búsqueda por nombre, apellido, email o especialidad
+    - activos_solo: Si es True, solo muestra profesores activos
+    """
+    return crud.listar_profesores(session, q, activos_solo)
+
+@app.get("/profesores/{profesor_id}", response_model=schemas.ProfesorOut)
+def obtener_profesor(profesor_id: int, session=Depends(get_session)):
+    """Obtener información de un profesor específico"""
+    return crud.obtener_profesor(session, profesor_id)
+
+@app.put("/profesores/{profesor_id}", response_model=schemas.ProfesorOut)
+def actualizar_profesor(
+    profesor_id: int, 
+    data: schemas.ProfesorUpdate, 
+    session=Depends(get_session)
+):
+    """Actualizar información de un profesor"""
+    return crud.actualizar_profesor(session, profesor_id, data)
+
+@app.delete("/profesores/{profesor_id}")
+def eliminar_profesor(
+    profesor_id: int, 
+    hard_delete: bool = False, 
+    session=Depends(get_session)
+):
+    """
+    Eliminar un profesor
+    - hard_delete=False: Soft delete (marca como inactivo)
+    - hard_delete=True: Eliminación física
+    """
+    return crud.eliminar_profesor(session, profesor_id, hard_delete)
+
+# =====================================================
+# ========== RELACIÓN PROFESORES-MATERIAS ===========
+# =====================================================
+
+@app.get("/profesores/{profesor_id}/materias", response_model=list[schemas.MateriaSimple])
+def listar_materias_profesor(profesor_id: int, session=Depends(get_session)):
+    """Obtener todas las materias asignadas a un profesor"""
+    return crud.listar_materias_profesor(session, profesor_id)
+
+@app.post("/profesores/{profesor_id}/materias/{materia_id}")
+def asignar_materia_profesor(
+    profesor_id: int, 
+    materia_id: int, 
+    session=Depends(get_session)
+):
+    """Asignar una materia a un profesor"""
+    return crud.asignar_materia_profesor(session, profesor_id, materia_id)
+
+@app.delete("/profesores/{profesor_id}/materias/{materia_id}")
+def remover_materia_profesor(
+    profesor_id: int, 
+    materia_id: int, 
+    session=Depends(get_session)
+):
+    """Remover una materia de un profesor"""
+    return crud.remover_materia_profesor(session, profesor_id, materia_id)
+
+@app.get("/materias/{materia_id}/profesores", response_model=list[schemas.ProfesorSimple])
+def listar_profesores_materia(materia_id: int, session=Depends(get_session)):
+    """Obtener todos los profesores que dictan una materia"""
+    return crud.listar_profesores_materia(session, materia_id)
+
+# =====================================================
+# ============ ESTADÍSTICAS PROFESORES ===============
+# =====================================================
+
+@app.get("/stats/profesores")
+def stats_profesores(session=Depends(get_session)):
+    """Estadísticas generales de profesores"""
+    total = session.query(models.Profesor).filter(models.Profesor.activo == True).count()
+    con_materias = session.query(models.Profesor).filter(
+        models.Profesor.activo == True,
+        models.Profesor.materias.any()
+    ).count()
+    sin_materias = total - con_materias
+    
+    return {
+        "total": total,
+        "con_materias": con_materias,
+        "sin_materias": sin_materias
+    }
 
 # =====================================================
 # ================= CRUD NOTAS ======================

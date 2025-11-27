@@ -3,6 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
+import { RouterModule } from '@angular/router'; // ⬅️ ¡AGREGADO para router-outlet y rutas!
 
 import { AppComponent } from './app.component';
 
@@ -20,33 +21,41 @@ import { NgxPaginationModule } from 'ngx-pagination';
 // Rutas principales
 import { AppRoutingModule } from './app-routing.module';
 
-// 👉 IMPORTACIÓN DEL NUEVO MÓDULO EXCEL
+// Excel Module
 import { ExcelModule } from './modules/excel/excel.module';
 
-// 🔥 IMPORTACIÓN Y REGISTRO DE CHART.JS (REQUERIDO PARA ANGULAR 15)
+// Chart.js
 import { Chart, registerables } from 'chart.js';
+
+// ⭐ IMPORTACIONES CORREGIDAS: Si los componentes son vecinos de app.module.ts
+import { ProfessorListComponent } from './professor-list.component'; // ⬅️ RUTA CORREGIDA (Elimina la subcarpeta 'professor/')
+import { ProfessorFormComponent } from './professor-form.component'; // ⬅️ RUTA CORREGIDA (Elimina la subcarpeta 'professor/')
+
 Chart.register(...registerables);
 
 @NgModule({
-  declarations: [
-    AppComponent,
-    StudentListComponent,
-    StudentFormComponent,
-    SubjectListComponent,
-    SubjectFormComponent,
-    GradeListComponent,
-    GradeFormComponent
-  ],
-  imports: [
-    BrowserModule,
-    CommonModule,
-    FormsModule,
-    HttpClientModule,
-    NgxPaginationModule,
-    AppRoutingModule,
-    ExcelModule   // 👉 integrar el módulo excel aquí
-  ],
-  providers: [],
-  bootstrap: [AppComponent]
+  declarations: [
+    AppComponent,
+    StudentListComponent,
+    StudentFormComponent,
+    SubjectListComponent,
+    SubjectFormComponent,
+    GradeListComponent,
+    GradeFormComponent,
+    ProfessorListComponent,
+    ProfessorFormComponent
+  ],
+  imports: [
+    BrowserModule,
+    CommonModule,
+    FormsModule,
+    HttpClientModule,
+    NgxPaginationModule,
+    RouterModule, // ⬅️ ¡AGREGADO! Soluciona error 'router-outlet' (NG8001)
+    AppRoutingModule, // (Contiene las rutas)
+    ExcelModule
+  ],
+  providers: [],
+  bootstrap: [AppComponent]
 })
 export class AppModule {}

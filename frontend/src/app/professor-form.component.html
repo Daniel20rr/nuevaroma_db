@@ -1,0 +1,16 @@
+<div class="card p-4">
+  <h2>{{ isEdit ? "Editar Profesor" : "Nuevo Profesor" }}</h2>
+
+  <form (ngSubmit)="guardar()">
+
+    <input class="form-control mb-2" placeholder="Nombre" [(ngModel)]="profesor.nombre" name="nombre">
+    <input class="form-control mb-2" placeholder="Apellido" [(ngModel)]="profesor.apellido" name="apellido">
+    <input class="form-control mb-2" placeholder="Email" [(ngModel)]="profesor.email" name="email">
+    <input class="form-control mb-2" placeholder="Especialidad" [(ngModel)]="profesor.especialidad" name="especialidad">
+
+    <button class="btn btn-success">
+      {{ isEdit ? "Actualizar" : "Crear" }}
+    </button>
+
+  </form>
+</div>

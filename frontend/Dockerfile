@@ -43,7 +43,8 @@ RUN rm -rf ./*
 
 # Copiamos la app compilada desde la etapa de build
 # Copiamos todo el contenido de dist (sin importar el nombre de la carpeta)
-COPY --from=build /app/dist ./
+COPY --from=build /app/dist/crud-nuevaroma-frontend ./ 
+
 
 # Copiamos configuración personalizada de nginx (opcional pero recomendado)
 COPY nginx.conf /etc/nginx/conf.d/default.conf

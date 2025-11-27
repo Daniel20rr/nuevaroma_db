@@ -1,283 +1,283 @@
+# backend/app/crud.py
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from sqlalchemy import or_
 from . import models, schemas
+from sqlalchemy import or_
 
+# ==================== ESTUDIANTES ====================
+def crear_estudiante(session: Session, estudiante: schemas.EstudianteCreate):
+    db_estudiante = session.query(models.Estudiante).filter(
+        models.Estudiante.email == estudiante.email
+    ).first()
+    if db_estudiante:
+        raise HTTPException(status_code=400, detail="Email ya registrado")
+    
+    nuevo = models.Estudiante(**estudiante.model_dump())
+    session.add(nuevo)
+    session.commit()
+    session.refresh(nuevo)
+    return nuevo
 
-# =====================================================
-# ================ CRUD ESTUDIANTES ===================
-# =====================================================
-
-def crear_estudiante(db: Session, estudiante: schemas.EstudianteCreate):
-    try:
-        existe = db.query(models.Estudiante).filter(
-            or_(
-                models.Estudiante.email == estudiante.email,
-                models.Estudiante.nombre == estudiante.nombre
-            )
-        ).first()
-
-        if existe:
-            raise HTTPException(
-                status_code=400,
-                detail=f"El estudiante '{estudiante.nombre}' o el correo '{estudiante.email}' ya existe."
-            )
-
-        db_est = models.Estudiante(
-            nombre=estudiante.nombre.strip(),
-            email=estudiante.email.strip() if estudiante.email else None
-        )
-        db.add(db_est)
-        db.commit()
-        db.refresh(db_est)
-        return db_est
-
-    except HTTPException:
-        db.rollback()
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al crear estudiante: {str(e)}")
-
-
-def listar_estudiantes(db: Session, q: str = None):
-    query = db.query(models.Estudiante)
-
+def listar_estudiantes(session: Session, q: str = None):
+    query = session.query(models.Estudiante)
     if q:
-        qlike = f"%{q}%"
         query = query.filter(
             or_(
-                models.Estudiante.nombre.like(qlike),
-                models.Estudiante.email.like(qlike)
+                models.Estudiante.nombre.ilike(f"%{q}%"),
+                models.Estudiante.email.ilike(f"%{q}%")
             )
         )
-
     return query.all()
 
+def obtener_estudiante(session: Session, estudiante_id: int):
+    return session.query(models.Estudiante).filter(
+        models.Estudiante.id == estudiante_id
+    ).first()
 
-def obtener_estudiante(db: Session, estudiante_id: int):
-    est = db.query(models.Estudiante).filter(models.Estudiante.id == estudiante_id).first()
-    if not est:
+def actualizar_estudiante(session: Session, estudiante_id: int, data: schemas.EstudianteUpdate):
+    estudiante = obtener_estudiante(session, estudiante_id)
+    if not estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
-    return est
+    
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(estudiante, key, value)
+    
+    session.commit()
+    session.refresh(estudiante)
+    return estudiante
 
+def eliminar_estudiante(session: Session, estudiante_id: int):
+    estudiante = obtener_estudiante(session, estudiante_id)
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    session.delete(estudiante)
+    session.commit()
 
-def actualizar_estudiante(db: Session, estudiante_id: int, data: schemas.EstudianteUpdate):
-    est = obtener_estudiante(db, estudiante_id)
-    try:
-        if data.nombre:
-            est.nombre = data.nombre.strip()
+# ==================== MATERIAS ====================
+def crear_materia(session: Session, materia: schemas.MateriaCreate):
+    db_materia = session.query(models.Materia).filter(
+        models.Materia.nombre == materia.nombre
+    ).first()
+    if db_materia:
+        raise HTTPException(status_code=400, detail="Materia ya existe")
+    
+    nueva = models.Materia(**materia.model_dump())
+    session.add(nueva)
+    session.commit()
+    session.refresh(nueva)
+    return nueva
 
-        if data.email:
-            existe = db.query(models.Estudiante).filter(
-                models.Estudiante.email == data.email,
-                models.Estudiante.id != estudiante_id
-            ).first()
+def listar_materias(session: Session):
+    return session.query(models.Materia).all()
 
-            if existe:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"El correo '{data.email}' ya está registrado en otro estudiante."
-                )
+# ==================== PROFESORES ====================
+def crear_profesor(session: Session, profesor: schemas.ProfesorCreate):
+    """Crear un nuevo profesor"""
+    # Verificar si el email ya existe
+    db_profesor = session.query(models.Profesor).filter(
+        models.Profesor.email == profesor.email
+    ).first()
+    
+    if db_profesor:
+        raise HTTPException(status_code=400, detail="Email ya registrado")
+    
+    nuevo_profesor = models.Profesor(**profesor.model_dump())
+    session.add(nuevo_profesor)
+    session.commit()
+    session.refresh(nuevo_profesor)
+    return nuevo_profesor
 
-            est.email = data.email.strip()
+def listar_profesores(session: Session, q: str = None, activos_solo: bool = True):
+    """Listar profesores con búsqueda opcional"""
+    query = session.query(models.Profesor)
+    
+    # Filtrar solo activos si se solicita
+    if activos_solo:
+        query = query.filter(models.Profesor.activo == True)
+    
+    # Búsqueda por texto
+    if q:
+        query = query.filter(
+            or_(
+                models.Profesor.nombre.ilike(f"%{q}%"),
+                models.Profesor.apellido.ilike(f"%{q}%"),
+                models.Profesor.email.ilike(f"%{q}%"),
+                models.Profesor.especialidad.ilike(f"%{q}%")
+            )
+        )
+    
+    return query.all()
 
-        db.commit()
-        db.refresh(est)
-        return est
+def obtener_profesor(session: Session, profesor_id: int):
+    """Obtener un profesor por ID"""
+    profesor = session.query(models.Profesor).filter(
+        models.Profesor.id == profesor_id
+    ).first()
+    
+    if not profesor:
+        raise HTTPException(status_code=404, detail="Profesor no encontrado")
+    
+    return profesor
 
-    except HTTPException:
-        db.rollback()
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al actualizar estudiante: {str(e)}")
-
-
-def eliminar_estudiante(db: Session, estudiante_id: int):
-    est = obtener_estudiante(db, estudiante_id)
-    try:
-        db.delete(est)
-        db.commit()
-        return {"detail": "Estudiante eliminado"}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al eliminar estudiante: {str(e)}")
-
-
-# =====================================================
-# ================ CRUD MATERIAS ======================
-# =====================================================
-
-def crear_materia(db: Session, materia: schemas.MateriaCreate):
-    try:
-        existe = db.query(models.Materia).filter(
-            models.Materia.nombre == materia.nombre
+def actualizar_profesor(session: Session, profesor_id: int, data: schemas.ProfesorUpdate):
+    """Actualizar información de un profesor"""
+    profesor = obtener_profesor(session, profesor_id)
+    
+    # Si se actualiza el email, verificar que no esté en uso
+    if data.email and data.email != profesor.email:
+        email_existe = session.query(models.Profesor).filter(
+            models.Profesor.email == data.email,
+            models.Profesor.id != profesor_id
         ).first()
+        
+        if email_existe:
+            raise HTTPException(status_code=400, detail="Email ya registrado por otro profesor")
+    
+    # Actualizar campos
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(profesor, key, value)
+    
+    session.commit()
+    session.refresh(profesor)
+    return profesor
 
-        if existe:
-            raise HTTPException(status_code=400, detail="La materia ya existe")
+def eliminar_profesor(session: Session, profesor_id: int, hard_delete: bool = False):
+    """
+    Eliminar un profesor
+    - hard_delete=False: Soft delete (marca como inactivo)
+    - hard_delete=True: Eliminación física
+    """
+    profesor = obtener_profesor(session, profesor_id)
+    
+    if hard_delete:
+        # Eliminación física
+        session.delete(profesor)
+        session.commit()
+        return {"detail": "Profesor eliminado permanentemente"}
+    else:
+        # Soft delete
+        profesor.activo = False
+        session.commit()
+        return {"detail": "Profesor marcado como inactivo"}
 
-        m = models.Materia(nombre=materia.nombre.strip())
-        db.add(m)
-        db.commit()
-        db.refresh(m)
-        return m
+# ========== RELACIONES PROFESORES-MATERIAS ==========
+def listar_materias_profesor(session: Session, profesor_id: int):
+    """Obtener todas las materias de un profesor"""
+    profesor = obtener_profesor(session, profesor_id)
+    return profesor.materias
 
-    except HTTPException:
-        db.rollback()
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al crear materia: {str(e)}")
-
-
-def listar_materias(db: Session):
-    return db.query(models.Materia).all()
-
-
-def obtener_materia(db: Session, materia_id: int):
-    """Obtiene una materia por ID"""
-    materia = db.query(models.Materia).filter(models.Materia.id == materia_id).first()
+def asignar_materia_profesor(session: Session, profesor_id: int, materia_id: int):
+    """Asignar una materia a un profesor"""
+    profesor = obtener_profesor(session, profesor_id)
+    
+    materia = session.query(models.Materia).filter(
+        models.Materia.id == materia_id
+    ).first()
+    
     if not materia:
         raise HTTPException(status_code=404, detail="Materia no encontrada")
-    return materia
+    
+    # Verificar si ya está asignada
+    if materia in profesor.materias:
+        raise HTTPException(status_code=400, detail="Materia ya asignada a este profesor")
+    
+    profesor.materias.append(materia)
+    session.commit()
+    
+    return {
+        "detail": "Materia asignada exitosamente",
+        "profesor_id": profesor_id,
+        "materia_id": materia_id
+    }
 
-
-# =====================================================
-# ===================== CRUD NOTAS ====================
-# =====================================================
-
-def crear_nota(db: Session, nota: schemas.NotaCreate):
-    try:
-        estudiante = db.query(models.Estudiante).filter(
-            models.Estudiante.id == nota.estudiante_id
-        ).first()
-        if not estudiante:
-            raise HTTPException(status_code=404, detail="Estudiante no encontrado")
-
-        materia = db.query(models.Materia).filter(
-            models.Materia.id == nota.materia_id
-        ).first()
-        if not materia:
-            raise HTTPException(status_code=404, detail="Materia no encontrada")
-
-        n = models.Nota(
-            estudiante_id=nota.estudiante_id,
-            materia_id=nota.materia_id,
-            nota=nota.nota
+def remover_materia_profesor(session: Session, profesor_id: int, materia_id: int):
+    """Remover una materia de un profesor"""
+    profesor = obtener_profesor(session, profesor_id)
+    
+    materia = session.query(models.Materia).filter(
+        models.Materia.id == materia_id
+    ).first()
+    
+    if not materia:
+        raise HTTPException(status_code=404, detail="Materia no encontrada")
+    
+    # Verificar si está asignada
+    if materia not in profesor.materias:
+        raise HTTPException(
+            status_code=400,
+            detail="Esta materia no está asignada al profesor"
         )
-
-        db.add(n)
-        db.commit()
-        db.refresh(n)
-        return n
-
-    except HTTPException:
-        db.rollback()
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al crear nota: {str(e)}")
-
-
-def listar_notas(db: Session, estudiante_id: int = None):
-    q = db.query(models.Nota)
-
-    if estudiante_id is not None:
-        q = q.filter(models.Nota.estudiante_id == estudiante_id)
-
-    return q.all()
-
-
-def actualizar_nota(db: Session, nota_id: int, data: schemas.NotaUpdate):
-    """Actualiza una nota existente"""
-    nota = db.query(models.Nota).filter(models.Nota.id == nota_id).first()
     
+    profesor.materias.remove(materia)
+    session.commit()
+    
+    return {
+        "detail": "Materia removida exitosamente",
+        "profesor_id": profesor_id,
+        "materia_id": materia_id
+    }
+
+def listar_profesores_materia(session: Session, materia_id: int):
+    """Obtener todos los profesores que dictan una materia"""
+    materia = session.query(models.Materia).filter(
+        models.Materia.id == materia_id
+    ).first()
+    
+    if not materia:
+        raise HTTPException(status_code=404, detail="Materia no encontrada")
+    
+    return materia.profesores
+
+# ==================== NOTAS ====================
+def crear_nota(session: Session, nota: schemas.NotaCreate):
+    estudiante_id = nota.estudiante_id
+    materia_id = nota.materia_id
+    
+    # Validar estudiante
+    estudiante = session.query(models.Estudiante).filter(
+        models.Estudiante.id == estudiante_id
+    ).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    # Validar materia
+    materia = session.query(models.Materia).filter(
+        models.Materia.id == materia_id
+    ).first()
+    if not materia:
+        raise HTTPException(status_code=404, detail="Materia no encontrada")
+    
+    nueva_nota = models.Nota(
+        nota=nota.nota,
+        estudiante_id=estudiante_id,
+        materia_id=materia_id
+    )
+    session.add(nueva_nota)
+    session.commit()
+    session.refresh(nueva_nota)
+    return nueva_nota
+
+def listar_notas(session: Session, estudiante_id: int = None):
+    query = session.query(models.Nota)
+    if estudiante_id:
+        query = query.filter(models.Nota.estudiante_id == estudiante_id)
+    return query.all()
+
+def actualizar_nota(session: Session, nota_id: int, data: schemas.NotaUpdate):
+    nota = session.query(models.Nota).filter(models.Nota.id == nota_id).first()
     if not nota:
         raise HTTPException(status_code=404, detail="Nota no encontrada")
     
-    try:
-        if data.estudiante_id is not None:
-            # Verificar que existe el estudiante
-            estudiante = obtener_estudiante(db, data.estudiante_id)
-            nota.estudiante_id = data.estudiante_id
-        
-        if data.materia_id is not None:
-            # Verificar que existe la materia
-            materia = obtener_materia(db, data.materia_id)
-            nota.materia_id = data.materia_id
-        
-        if data.nota is not None:
-            nota.nota = data.nota
-        
-        db.commit()
-        db.refresh(nota)
-        return nota
+    if data.nota is not None:
+        nota.nota = data.nota
     
-    except HTTPException:
-        db.rollback()
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al actualizar nota: {str(e)}")
+    session.commit()
+    session.refresh(nota)
+    return nota
 
-
-def eliminar_nota(db: Session, nota_id: int):
-    """Elimina una nota por ID"""
-    nota = db.query(models.Nota).filter(models.Nota.id == nota_id).first()
-    
+def eliminar_nota(session: Session, nota_id: int):
+    nota = session.query(models.Nota).filter(models.Nota.id == nota_id).first()
     if not nota:
         raise HTTPException(status_code=404, detail="Nota no encontrada")
-    
-    try:
-        db.delete(nota)
-        db.commit()
-        return {"detail": "Nota eliminada"}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al eliminar nota: {str(e)}")
-
-
-# =====================================================
-# =============== MÓDULO EXCEL (NUEVO) ================
-# =====================================================
-
-def existe_estudiante_por_email(db: Session, email: str):
-    """Devuelve True si existe un estudiante con ese email."""
-    return db.query(models.Estudiante).filter(models.Estudiante.email == email).first()
-
-
-def insertar_estudiantes_desde_excel(db: Session, lista_estudiantes: list):
-    """
-    Inserta estudiantes desde el Excel (ya validado en el endpoint).
-    lista_estudiantes: [{'nombre': 'Juan', 'email': 'j@x.com'}, ...]
-    """
-    
-    total_insertados = 0
-    total_existentes = 0
-
-    for item in lista_estudiantes:
-        nombre = item.get("nombre", "").strip()
-        email = item.get("email", "").strip()
-
-        if not nombre or not email:
-            continue
-
-        existe = existe_estudiante_por_email(db, email)
-
-        if existe:
-            total_existentes += 1
-            continue
-
-        nuevo = models.Estudiante(nombre=nombre, email=email)
-        db.add(nuevo)
-        total_insertados += 1
-
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al insertar desde Excel: {str(e)}")
-
-    return total_insertados, total_existentes
+    session.delete(nota)
+    session.commit()

@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import Optional, List, Any
+from datetime import date
 
 # =====================================================
 # ================ ESTUDIANTES ========================
@@ -33,6 +34,54 @@ class MateriaOut(MateriaBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+# =====================================================
+# ============== MATERIAS SIMPLE ======================
+# =====================================================
+class MateriaSimple(BaseModel):
+    id: int
+    nombre: str
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# =====================================================
+# ===================== PROFESORES ====================
+# =====================================================
+class ProfesorBase(BaseModel):
+    nombre: str = Field(..., min_length=2, max_length=100)
+    apellido: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    telefono: Optional[str] = Field(None, max_length=20)
+    especialidad: Optional[str] = Field(None, max_length=100)
+    fecha_contratacion: Optional[date] = None
+
+class ProfesorCreate(ProfesorBase):
+    pass
+
+class ProfesorUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, min_length=2, max_length=100)
+    apellido: Optional[str] = Field(None, min_length=2, max_length=100)
+    email: Optional[EmailStr] = None
+    telefono: Optional[str] = Field(None, max_length=20)
+    especialidad: Optional[str] = Field(None, max_length=100)
+    fecha_contratacion: Optional[date] = None
+    activo: Optional[bool] = None
+
+class ProfesorOut(ProfesorBase):
+    id: int
+    activo: bool
+    materias: List[MateriaSimple] = []
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ProfesorSimple(BaseModel):
+    id: int
+    nombre: str
+    apellido: str
+    email: EmailStr
+    especialidad: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
 
 # =====================================================
 # ======================= NOTAS ========================
@@ -85,3 +134,7 @@ class ExcelInsertResponse(BaseModel):
     insertados: int
     existentes: int
     message: str
+
+class ProfesorMateriaAsignacion(BaseModel):
+    profesor_id: int
+    materia_id: int
